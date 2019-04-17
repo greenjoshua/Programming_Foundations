@@ -1,4 +1,9 @@
 # calculator => refractored
+
+require 'yaml'
+
+MESSAGES = YAML.load_file('calculator_messages.yml')
+
 def prompt(message)
   Kernel.puts("=> #{message}")
 end
@@ -23,14 +28,14 @@ def operation_to_message(op)
   
 end
 
-prompt("Welcome to the calculator! Enter your name: ") # asks for 2 numbers and assigns them to the variable num1 and num2
+prompt(MESSAGES['welcome']) # asks for 2 numbers and assigns them to the variable num1 and num2
 
 name = ''
 loop do
   name = Kernel.gets().chomp()
   
   if name.empty?()
-    prompt("Make sure you use a valid name.")
+    prompt(MESSAGES['valid_number'])
   else
     break
   end
@@ -41,25 +46,25 @@ prompt("Hi #{name}")
 loop do # main loop
   num1 = ''
   loop do
-    prompt("Please enter the first number: ")
+    prompt(MESSAGES['first_number'])
     num1 = Kernel.gets().chomp() # cut all whitespace and convert string to integer using the to_i method
     
     if valid_number?(num1)
       break
     else
-      prompt("Hmm...that doesn't look like a valid number.")
+      prompt(MESSAGES['wrong_number1'])
     end
   end
   
   num2 = ''
   loop do
-    prompt("Please enter the second number: ")
+    prompt(MESSAGES['second_number'])
     num2 = Kernel.gets().chomp()
     
     if valid_number?(num2)
       break
     else
-      prompt("Hmm...that doesn't look like a valid number.")
+      prompt(MESSAGES['wrong_number2'])
     end
   end
   
@@ -80,11 +85,11 @@ loop do # main loop
     if %w(1 2 3 4).include?(operator)
       break
     else
-      prompt("Must choose 1, 2, 3 or 4")
+      prompt(MESSAGES['choose_num'])
     end
   end
   
-  prompt("#{operation_to_message(operator)} the two numbers...")
+  prompt("#{operation_to_message(operator)} #{MESSAGES['operator_message']}")
   
   result = case operator
           when '1'
@@ -98,11 +103,11 @@ loop do # main loop
   
   end
   
-  prompt("The result is #{result}")
+  prompt("#{MESSAGES['result1']} #{result}")
   
-  prompt("Do you want to perform another calculation? ('Y' to calculate again)")
+  prompt(MESSAGES['calculate'])
   answer = Kernel.gets().chomp()
   break unless answer.downcase().start_with?('y')
 end
 
-prompt ("Thank you for using the calculator. Good bye!")
+prompt(MESSAGES['goodbye'])

@@ -1,9 +1,7 @@
 
 require 'yaml'
 
-MESSAGES = YAML.load('calculator_messages.yml')
-puts MESSAGES.inspect
-
+MESSAGES = YAML.load_file('calculator_messages.yml')
 
 def prompt(message)
   Kernel.puts("=> #{message}")
@@ -42,7 +40,7 @@ loop do
   end
 end
 
-prompt(MESSAGES['hi'])
+prompt("Hi #{name}")
 
 loop do # main loop
   num1 = ''
@@ -90,7 +88,7 @@ loop do # main loop
     end
   end
   
-  prompt(MESSAGES['operator_message'])
+  prompt("#{operation_to_message(operator)} #{MESSAGES['operator_message']}")
   
   result = case operator
           when '1'
@@ -104,7 +102,7 @@ loop do # main loop
   
   end
   
-  prompt(MESSAGES['result1'])
+  prompt("#{MESSAGES['result1']} #{result}")
   
   prompt(MESSAGES['calculate'])
   answer = Kernel.gets().chomp()
