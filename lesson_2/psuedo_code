@@ -1,0 +1,12 @@
+GIVEN player_score : computer_score
+
+print player_score : computer_score
+
+if display_results(player, computer)
+  add to player_score
+else
+  add to computer_score
+end
+
+print score
+

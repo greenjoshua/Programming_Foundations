@@ -1,9 +1,10 @@
-VALID_CHOICES = { 'rock' => ['lizard', 'scissors'],
-                  'paper' => ['rock', 'spock'],
-                  'scissors' => ['paper', 'lizard'],
-                  'lizard' => ['spock', 'paper'],
-                  'spock' => ['rock', 'scissors'] }
+VALID_CHOICES = {'rock' => ['lizard', 'scissors'],
+                'paper' => ['rock', 'spock'],
+                'scissors' => ['paper', 'lizard'],
+                'lizard' => ['spock', 'paper'],
+                'spock' => ['rock', 'scissors']}
 
+ 
 def prompt(message)
   Kernel.puts("=> #{message}")
 end
@@ -22,7 +23,7 @@ def letter_to_word(letter)
     'lizard'
   end
 end
-
+ 
 def win?(first, second)
   VALID_CHOICES[first].include?(second)
 end
@@ -43,12 +44,14 @@ player_score = 0
 computer_score = 0
 
 loop do
+  
   player_score = 0
   computer_score = 0
 
   loop do
+    
     choice = ''
-
+    
     loop do
       prompt("Player score: #{player_score}")
       prompt("Computer score: #{computer_score}")
@@ -64,20 +67,20 @@ loop do
          choice == 'l'
         choice = letter_to_word(choice)
       end
-
+  
       if VALID_CHOICES.include?(choice)
         break
       else
         prompt("That's not a valid choice.")
       end
     end
-
+   
     computer_choice = VALID_CHOICES.keys.sample
-
+  
     prompt("You chose: #{choice}; Computer chose: #{computer_choice}")
-
+  
     display_results(choice, computer_choice)
-
+    
     if win?(choice, computer_choice)
       player_score += 1
     elsif win?(computer_choice, choice)
@@ -85,7 +88,7 @@ loop do
     else
       prompt("No one scored!")
     end
-
+  
     if player_score == 5
       prompt("Player 1 is the Grand Winner!!")
       break
@@ -93,13 +96,13 @@ loop do
       prompt("Computer is the Grand Winner!!")
       break
     else
-      prompt("")
+     prompt("")
     end
   end
-
+  
   prompt("Do you want to play again?")
   answer = Kernel.gets().chomp()
   break unless answer.downcase().start_with?('y')
+  
 end
-
 prompt("Thank you for playing. Good bye!")
