@@ -4,8 +4,31 @@ VALID_CHOICES = { 'rock' => ['lizard', 'scissors'],
                   'lizard' => ['spock', 'paper'],
                   'spock' => ['rock', 'scissors'] }
 
+def cls
+  system('cls') || system('clear')
+end
+
 def prompt(message)
   Kernel.puts("=> #{message}")
+end
+
+def retrieve_computer_move
+  VALID_CHOICES.keys.sample
+end
+
+def display_current_score(player, computer)
+  prompt("Player score: #{player}")
+  prompt("Computer score: #{computer}")
+end
+
+def display_move_options()
+  prompt("Choose one: #{VALID_CHOICES.keys.join(', ')}")
+  prompt("Shortcuts: Rock - 'r', Paper - 'p', Scissors - 'sc',")
+  prompt("Lizard - 'l', Spock - 'sp'")
+end
+
+def display_invalid_move_input
+  prompt("That is not a valid move!")
 end
 
 def letter_to_word(letter)
@@ -27,79 +50,114 @@ def win?(first, second)
   VALID_CHOICES[first].include?(second)
 end
 
+def retrieve_move_input
+  choice = ''
+
+    loop do
+      choice = Kernel.gets().chomp().downcase
+
+      if choice == 'r' ||
+          choice == 'sc' ||
+          choice == 'p' ||
+          choice == 'sp' ||
+          choice == 'l'
+          choice = letter_to_word(choice)
+      end
+
+      break if valid_move_input?(choice)
+
+      display_invalid_move_input
+    end
+
+  choice
+end
+
+def valid_move_input?(choice)
+  VALID_CHOICES.include?(choice)
+end
+
 def display_results(player, computer)
   if win?(player, computer)
     prompt("You won!")
   elsif win?(computer, player)
-    prompt("Computer won!")
+   prompt("Computer won!")
   else
     prompt("It's a tie!")
   end
 end
 
-prompt("Welcome to #{VALID_CHOICES.keys.join(', ')}!")
+def increment_score(decision, computer_decision, keep_score)
+  if win?(decision, computer_decision)
+    keep_score[:player_score] += 1
+  elsif win?(computer_decision, decision)
+    keep_score[:computer_score] += 1
+  else
+    prompt("No one scored!")
+  end
+end
 
-player_score = 0
-computer_score = 0
+def continue_screen(continue_input)
+  while continue_input != 'c'
+    prompt("Press 'c' to continue.")
+    continue_input = Kernel.gets().chomp().downcase
+    continue_input.match?('c') ? return : prompt("That is not a valid input.")
+  end
+end
+
+def display_match_won(points)
+  if points[:player_score] == 5
+    prompt("Player 1 is the Grand Winner!!")
+  elsif points[:computer_score] == 5
+    prompt("Computer is the Grand Winner!!")
+  else
+    prompt("")
+  end
+end
+
+prompt("Welcome to #{VALID_CHOICES.keys.join(', ')}!")
+prompt("This is a multi-round game where the first player to reach 5 points wins.")
+
+score = { player_score: 0, computer_score: 0 }
 
 loop do
-  player_score = 0
-  computer_score = 0
+  score = { player_score: 0, computer_score: 0 }
+  continue = nil
 
   loop do
-    choice = ''
+    continue_screen(continue)
+    cls
 
-    loop do
-      prompt("Player score: #{player_score}")
-      prompt("Computer score: #{computer_score}")
-      prompt("")
-      prompt("Choose one: #{VALID_CHOICES.keys.join(', ')}")
-      prompt("Shortcuts: Rock - 'r', Paper - 'p', Scissors - 'sc',")
-      prompt("Lizard - 'l', Spock - 'sp'")
-      choice = Kernel.gets().chomp()
-      if choice == 'r' ||
-         choice == 'sc' ||
-         choice == 'p' ||
-         choice == 'sp' ||
-         choice == 'l'
-        choice = letter_to_word(choice)
-      end
+    display_current_score(score[:player_score], score[:computer_score])
 
-      if VALID_CHOICES.include?(choice)
-        break
-      else
-        prompt("That's not a valid choice.")
-      end
-    end
+    continue_screen(continue)
+    cls
 
-    computer_choice = VALID_CHOICES.keys.sample
+    display_move_options()
+
+    choice = retrieve_move_input
+
+    computer_choice = retrieve_computer_move
 
     prompt("You chose: #{choice}; Computer chose: #{computer_choice}")
 
     display_results(choice, computer_choice)
 
-    if win?(choice, computer_choice)
-      player_score += 1
-    elsif win?(computer_choice, choice)
-      computer_score += 1
-    else
-      prompt("No one scored!")
-    end
+    increment_score(choice, computer_choice, score)
 
-    if player_score == 5
-      prompt("Player 1 is the Grand Winner!!")
-      break
-    elsif computer_score == 5
-      prompt("Computer is the Grand Winner!!")
-      break
-    else
-      prompt("")
-    end
+    display_match_won(score)
+
+    break if score[:player_score] == 5 || score[:computer_score] == 5
   end
 
   prompt("Do you want to play again?")
+
   answer = Kernel.gets().chomp()
-  break unless answer.downcase().start_with?('y')
+
+  if answer.downcase() == 'no'
+    break
+  else
+    prompt("Good luck!")
+  end
 end
 
 prompt("Thank you for playing. Good bye!")
