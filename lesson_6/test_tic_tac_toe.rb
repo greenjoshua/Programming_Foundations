@@ -1,6 +1,3 @@
-require 'pry'
-
-
 WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
                 [[1, 4, 7], [2, 5, 8], [3, 6, 9]] + # columns
                 [[1, 5, 9], [3, 5, 7]]              # diagonals
@@ -8,9 +5,40 @@ WINNING_LINES = [[1, 2, 3], [4, 5, 6], [7, 8, 9]] + # rows
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
+VALID_FIRST_MOVE_OPTIONS = ['player', 'computer', 'choose']
+FIRST_MOVE = 'choose'
 
 def prompt(msg)
   puts "=>#{msg}"
+end
+
+def first_move?
+  FIRST_MOVE != 'choose'
+end
+
+def choose_first_move
+  choice = ''
+
+  loop do
+    prompt "Do you want to go first? ('y' or 'n')"
+    choice = gets.chomp.downcase
+    break if choice == 'y' || choice == 'n'
+    prompt("That is not a valid choice.")
+  end
+
+  choice == 'y' ? 'player' : 'computer'
+end
+
+def set_first_move
+  if FIRST_MOVE == 'choose'
+    choose_first_move
+  elsif VALID_FIRST_MOVE_OPTIONS.include?(FIRST_MOVE)
+    FIRST_MOVE
+  end
+end
+
+def alternate_player(player)
+  player == 'player' ? 'computer' : 'player'
 end
 
 # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
@@ -55,6 +83,14 @@ def joinor(arr, delimiter=', ', word = 'or')
   end
 end
 
+def place_piece!(brd, player)
+  if player == 'player'
+    player_places_piece!(brd)
+  elsif player == 'computer'
+    computer_place_piece!(brd)
+  end
+end
+
 def player_places_piece!(brd)
   square = ''
   loop do
@@ -69,31 +105,47 @@ end
 
 def find_at_risk_square(line, board, marker)
   if board.values_at(*line).count(marker) == 2
-    board.select{|k,v| line.include?(k) && v == INITIAL_MARKER}.keys.first
-  else
-    nil
+    board.select { |k, v| line.include?(k) && v == INITIAL_MARKER }.keys.first
   end
+end
+
+def offensive_select_at_risk_square(sqre, brd)
+  WINNING_LINES.each do |line|
+    sqre = find_at_risk_square(line, brd, COMPUTER_MARKER)
+    break if sqre
+  end
+
+  sqre
+end
+
+def defensive_select_at_risk_square(sqre, brd)
+  if !sqre
+    WINNING_LINES.each do |line|
+      sqre = find_at_risk_square(line, brd, PLAYER_MARKER)
+      break if sqre
+    end
+  end
+
+  sqre
+end
+
+def select_square_five(sqre, brd)
+  if !sqre
+    sqre = 5 if empty_squares(brd).include?(5)
+  end
+
+  sqre
 end
 
 def computer_place_piece!(brd)
   square = nil
-  
-  WINNING_LINES.each do |line|
-    square = find_at_risk_square(line, brd, COMPUTER_MARKER)
-    break if square
-  end
 
-  if !square
-    WINNING_LINES.each do |line|
-      square = find_at_risk_square(line, brd, PLAYER_MARKER)
-      break if square
-    end
-  end
-  
-  if !square
-    square = 5 if empty_squares(brd).include?(5)
-  end
-  
+  square = offensive_select_at_risk_square(square, brd) unless !square.nil?
+
+  square = defensive_select_at_risk_square(square, brd) unless !square.nil?
+
+  square = select_square_five(square, brd) unless !square.nil?
+
   if !square
     square = empty_squares(brd).sample
   end
@@ -136,40 +188,41 @@ end
 
 loop do
   board = initialize_board
-  score = {player_score: 0, computer_score: 0}
+  score = { player_score: 0, computer_score: 0 }
   loop do
     board = initialize_board
-    
+
+    current_player = set_first_move
+
     loop do
       display_board(board)
       display_score(score[:player_score], score[:computer_score])
-  
-      player_places_piece!(board)
+
+      place_piece!(board, current_player)
       break if someone_won?(board) || board_full?(board)
-  
-      computer_place_piece!(board)
-      break if someone_won?(board) || board_full?(board)
+
+      current_player = alternate_player(current_player)
     end
-  
+
     display_board(board)
-  
+
     if someone_won?(board)
       prompt("#{detect_winner(board)} won!")
     else
       prompt("It's a tie!")
     end
-    
+
     keep_score(score, board)
-    
+
     break if (score[:player_score] == 5) || (score[:computer_score] == 5)
   end
-  
+
   if score[:player_score] == 5
     prompt("Player is the Grand Winner!")
   else
     prompt("Computer is the Grand Winner!")
   end
-  
+
   prompt("Play again? (Y/N")
   answer = gets.chomp
   break if answer.downcase == 'n'
