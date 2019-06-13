@@ -7,22 +7,30 @@ PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
 VALID_FIRST_MOVE_OPTIONS = ['player', 'computer', 'choose']
 FIRST_MOVE = 'choose'
+WINNING_SCORE = 5
 
 def prompt(msg)
   puts "=>#{msg}"
+end
+
+def clear
+  system('cls') || system('clear')
 end
 
 def first_move?
   FIRST_MOVE != 'choose'
 end
 
+def valid_answer?(ans)
+  ans == 'y' || ans == 'n'
+end
+
 def choose_first_move
   choice = ''
-
   loop do
     prompt "Do you want to go first? ('y' or 'n')"
     choice = gets.chomp.downcase
-    break if choice == 'y' || choice == 'n'
+    break if valid_answer?(choice)
     prompt("That is not a valid choice.")
   end
 
@@ -37,13 +45,17 @@ def set_first_move
   end
 end
 
+def valid_number?(num)
+  num == num.to_i.to_s
+end
+
 def alternate_player(player)
   player == 'player' ? 'computer' : 'player'
 end
 
 # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
 def display_board(brd)
-  system 'clear'
+  clear
   puts "Player is a #{PLAYER_MARKER}"
   puts "Computer is a #{COMPUTER_MARKER}"
   puts ""
@@ -60,6 +72,7 @@ def display_board(brd)
   puts "     |     |"
   puts ""
 end
+
 # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
 
 def initialize_board
@@ -93,14 +106,15 @@ end
 
 def player_places_piece!(brd)
   square = ''
+
   loop do
     prompt("Choose a square (#{joinor(empty_squares(brd))}):")
-    square = gets.chomp.to_i
-    break if empty_squares(brd).include?(square)
+    square = gets.chomp
+    break if empty_squares(brd).include?(square.to_i) && valid_number?(square)
     prompt("Sorry, that's not a valid choice.")
   end
 
-  brd[square] = PLAYER_MARKER
+  brd[square.to_i] = PLAYER_MARKER
 end
 
 def find_at_risk_square(line, board, marker)
@@ -141,9 +155,7 @@ def computer_place_piece!(brd)
   square = nil
 
   square = offensive_select_at_risk_square(square, brd) unless !square.nil?
-
   square = defensive_select_at_risk_square(square, brd) unless !square.nil?
-
   square = select_square_five(square, brd) unless !square.nil?
 
   if !square
@@ -186,9 +198,33 @@ def keep_score(scre_hsh, brd)
   end
 end
 
+def match_ended?(score, alt_score)
+  (score == WINNING_SCORE) || (alt_score == WINNING_SCORE)
+end
+
+def display_match_winner(score)
+  if score == WINNING_SCORE
+    prompt("Player is the Grand Winner!")
+  else
+    prompt("Computer is the Grand Winner!")
+  end
+end
+
+def play_again?(ans)
+  valid_answer?(ans) && (ans == 'y')
+end
+
 loop do
   board = initialize_board
   score = { player_score: 0, computer_score: 0 }
+
+  prompt "Welcome to Tic-Tac-Toe!"
+  prompt "Each round is worth 1 point."
+  prompt "If there is a tie, then no points are awarded."
+  prompt "The first one to score 5 points wins!"
+  sleep 4
+
+  clear
   loop do
     board = initialize_board
 
@@ -196,9 +232,11 @@ loop do
 
     loop do
       display_board(board)
+
       display_score(score[:player_score], score[:computer_score])
 
       place_piece!(board, current_player)
+
       break if someone_won?(board) || board_full?(board)
 
       current_player = alternate_player(current_player)
@@ -214,18 +252,18 @@ loop do
 
     keep_score(score, board)
 
-    break if (score[:player_score] == 5) || (score[:computer_score] == 5)
+    break if match_ended?(score[:player_score], score[:computer_score])
   end
 
-  if score[:player_score] == 5
-    prompt("Player is the Grand Winner!")
-  else
-    prompt("Computer is the Grand Winner!")
-  end
+  display_match_winner(score[:player_score])
 
   prompt("Play again? (Y/N")
-  answer = gets.chomp
-  break if answer.downcase == 'n'
+
+  answer = gets.chomp.downcase
+
+  break if !play_again?(answer)
+
+  clear
 end
 
 prompt("Thanks for playing Tic-Tac-Toe. Goodbye!")
