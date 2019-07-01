@@ -1,8 +1,6 @@
-require 'pry'
-require 'pry-byebug'
-
-PLAYER_WINNING_SCORE = 21
-DEALER_WINNING_SCORE = 17
+WINNING_SCORE = 21
+DEALER_MAX_HIT_VALUE = 17
+GRAND_WINNER = 5
 
 def prompt(message)
   puts "=>#{message}"
@@ -41,8 +39,8 @@ def add_to_hand(hnd, player, crd)
   hnd[player] << crd
 end
 
-def valid_answer?(ans, continue_response, quit_response)
-  (ans == continue_response) || (ans == quit_response)
+def valid_answer?(ans, continue, stay, quit)
+  (ans == continue) || (ans == stay) || (ans == quit)
 end
 
 def play_again?
@@ -64,7 +62,7 @@ def hit_or_stay? # asks user to hit or stay and returns answer
   loop do
     prompt "Hit or Stay?"
     choice = gets.chomp.downcase
-    break if valid_answer?(choice, "hit", "stay")
+    break if valid_answer?(choice, "hit", "stay", "q")
     prompt "That is not a valid choice!"
   end
 
@@ -94,50 +92,41 @@ def calculate_total(values)
 end
 
 def calc_ace(total)
-  if total + 11 > PLAYER_WINNING_SCORE
-    return 1
+  if total + 11 > WINNING_SCORE
+    1
   else
-    return 11
+    11
   end
 end
 
-def bust(player_score)
-
-  player_score > PLAYER_WINNING_SCORE
-
-end
-
-def dealer_bust(dealer_score)
-  dealer_score >= DEALER_WINNING_SCORE
+def bust(scre)
+  scre > WINNING_SCORE
 end
 
 def calculate_final_score(player, dealer)
   player > dealer ? "Player" : "Dealer"
 end
 
-def determine_winner(p_score, d_score, p_choice, d_choice)
+def determine_winner(p_score, d_score)
   if bust(p_score)
-    return "Dealer"
-  elsif dealer_bust(d_score)
-    return "Player"
-  elsif (p_score == PLAYER_WINNING_SCORE) && (d_score != PLAYER_WINNING_SCORE)
-    return "Player"
-  elsif (d_score == PLAYER_WINNING_SCORE) && (p_score != PLAYER_WINNING_SCORE)
-    return "Dealer"
-  elsif (p_choice == 'stay') && (d_choice == 'stay')
-    return calculate_final_score(p_score, d_score)
+    "Dealer"
+  elsif bust(d_score)
+    "Player"
+  elsif d_score < p_score
+    "Player"
+  elsif d_score > p_score
+    "Dealer"
   else
     "Tie"
   end
 end
 
 def join_cards(arr)
-  temp_arr = arr
-  if temp_arr.size == 2
-    temp_arr.join(" and ")
+  if arr.size == 2
+    arr.join(" and ")
   else
-    temp_arr[-1] = "and #{arr.last}"
-    temp_arr.join(", ")
+    last = arr[-1]
+    arr[0..-2].join(", ") + " and " + last.to_s
   end
 end
 
@@ -155,66 +144,109 @@ def tie(winnr)
   prompt "It's a tie!" if winnr == "Tie"
 end
 
+def keep_max_score(scre_hsh, winnr)
+  if winnr == 'Player'
+    scre_hsh[:player] += 1
+  elsif winnr == 'Dealer'
+    scre_hsh[:dealer] += 1
+  end
+end
+
+def match_ended?(score, alt_score)
+  (score == GRAND_WINNER) || (alt_score == GRAND_WINNER)
+end
+
+def display_match_winner(score)
+  if score == GRAND_WINNER
+    prompt("Player is the Grand Winner!")
+  else
+    prompt("Dealer is the Grand Winner!")
+  end
+end
+
 loop do
-  clear
-  score = { player: 0, dealer: 0 }
-  choice = ''
-  dealer_choice = ''
-  winner = nil
-  deck = {}
-  hands = { player: [], dealer: [] }
+  max_score = { player: 0, dealer: 0 }
+  prompt "Welcome to 21!"
+  prompt "This is a multi-round game where the first to win #{GRAND_WINNER}" \
+         " rounds is declared the Grand Winner!"
+  prompt "Good Luck!"
+  sleep 5
 
   loop do
-    initialize_deck(deck)
-    initialize_hand(hands, :player, deck) # create player hand
-    initialize_hand(hands, :dealer, deck) # create dealer hand
-    prompt "Welcome to 21!"
+    clear
+    score = { player: 0, dealer: 0 }
+    choice = ''
+    winner = nil
+    deck = {}
+    hands = { player: [], dealer: [] }
 
     loop do
-      score[:dealer] = calculate_total(hands[:dealer])
-      score[:player] = calculate_total(hands[:player])
-      prompt "Dealer has: #{hands[:dealer][0]} and unknown card."
-      prompt "You have: #{join_cards(hands[:player])} for a total of #{score[:player]}."
-      #binding.pry
-      choice = hit_or_stay?
-      #binding.pry
-      break if choice == "stay"
-      hit(deck, hands, :player)
-      prompt "You hit!"
-      break if bust(score[:player])
-      #binding.pry
+      clear
+      initialize_deck(deck)
+      initialize_hand(hands, :player, deck) # create player hand
+      initialize_hand(hands, :dealer, deck) # create dealer hand
+      prompt "Player Rounds Won: #{max_score[:player]}"
+      prompt "Dealer Rounds Won: #{max_score[:dealer]}"
+      puts "------------------------"
+      puts "------------------------"
+
+      loop do
+        score[:dealer] = calculate_total(hands[:dealer])
+        score[:player] = calculate_total(hands[:player])
+        prompt "Dealer has: #{hands[:dealer][0]} and unknown card."
+        prompt "You have: #{join_cards(hands[:player])}" \
+               " for a total of #{score[:player]}."
+        break if bust(score[:player])
+        puts "------------------------"
+        puts "------------------------"
+        choice = hit_or_stay?
+        break if (choice == "stay") || (choice == "q")
+        hit(deck, hands, :player)
+        prompt "You hit!"
+        puts "------------------------"
+        puts "------------------------"
+      end
+
+      puts "------------------------"
+      puts "------------------------"
+      prompt "Dealer Turn..." if !bust(score[:player])
+      sleep 2
+
+      until (score[:dealer] >= DEALER_MAX_HIT_VALUE) || bust(score[:player])
+        score[:dealer] = calculate_total(hands[:dealer])
+        display_cards(hands, score, :player, :dealer)
+        break if bust(score[:player]) || bust(score[:dealer]) || (choice == "q")
+        hit(deck, hands, :dealer)
+        prompt "Dealer hit!"
+        puts "------------------------"
+        puts "------------------------"
+        score[:dealer] = calculate_total(hands[:dealer])
+        sleep 3
+      end
+
+      display_cards(hands, score, :player, :dealer) if bust(score[:dealer])
+      busted?(score[:player], score[:dealer])
+      sleep 2
+
+      puts "------------------------"
+      puts "------------------------"
+      display_cards(hands, score, :player, :dealer) if !bust(score[:player])
+      winner = determine_winner(score[:player], score[:dealer])
+      prompt "The winner is #{winner}!" unless winner == "Tie"
+      tie(winner)
+      sleep 2
+      break if winner || (choice == "q")
     end
 
-    busted?(score[:player], score[:dealer])
-    winner = determine_winner(score[:player], score[:dealer], choice, dealer_choice)
-    prompt "Dealer Turn..." unless bust(score[:player]) || winner != nil
+    keep_max_score(max_score, winner)
+    break if match_ended?(max_score[:player], max_score[:dealer])
     sleep 2
-
-    loop do
-      break if winner
-      break if bust(score[:player]) || dealer_bust(score[:dealer])
-      score[:dealer] = calculate_total(hands[:dealer])
-      display_cards(hands, score, :player, :dealer)
-      break if dealer_bust(score[:dealer]) || bust(score[:player]) || winner
-      hit(deck, hands, :dealer)
-      prompt "Dealer hit!"
-      #binding.pry
-      sleep 7
-    end
-
-    #binding.pry
-    sleep 3
-
-    display_cards(hands, score, :player, :dealer)
-    winner = determine_winner(score[:player], score[:dealer], choice, dealer_choice) if !winner
-    winner = "Dealer" if bust(score[:player])
-    prompt "The winner is #{winner}!" unless winner == "Tie"
-    tie(winner)
-    break if winner
   end
 
+  display_match_winner(max_score[:player])
   answer = play_again?
   break if answer == "n"
 end
 
+puts "------------------------"
 prompt "Thank you for playing 21! Goodbye!"
