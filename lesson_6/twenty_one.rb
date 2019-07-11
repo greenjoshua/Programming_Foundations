@@ -50,7 +50,7 @@ def play_again?
   loop do
     prompt "Do you want to play again? (y/n)"
     answer = gets.chomp.downcase
-    break if valid_answer?(answer, "y", "n")
+    break if valid_answer?(answer, "y", "n", "q")
     prompt "That is not a valid response."
   end
 
@@ -60,9 +60,9 @@ end
 def hit_or_stay? # asks user to hit or stay and returns answer
   choice = ''
   loop do
-    prompt "Hit or Stay?"
+    prompt "Hit or Stay? ('h' for 'hit', 's' for 'stay', 'q' to quit)"
     choice = gets.chomp.downcase
-    break if valid_answer?(choice, "hit", "stay", "q")
+    break if valid_answer?(choice, "h", "s", "q")
     prompt "That is not a valid choice!"
   end
 
@@ -171,11 +171,11 @@ loop do
          " rounds is declared the Grand Winner!"
   prompt "Good Luck!"
   sleep 5
+  choice = ''
 
   loop do
     clear
     score = { player: 0, dealer: 0 }
-    choice = ''
     winner = nil
     deck = {}
     hands = { player: [], dealer: [] }
@@ -196,11 +196,11 @@ loop do
         prompt "Dealer has: #{hands[:dealer][0]} and unknown card."
         prompt "You have: #{join_cards(hands[:player])}" \
                " for a total of #{score[:player]}."
-        break if bust(score[:player])
+        break if bust(score[:player]) || (score[:player] == WINNING_SCORE)
         puts "------------------------"
         puts "------------------------"
         choice = hit_or_stay?
-        break if (choice == "stay") || (choice == "q")
+        break if (choice == "s") || (choice == "q")
         hit(deck, hands, :player)
         prompt "You hit!"
         puts "------------------------"
@@ -209,13 +209,16 @@ loop do
 
       puts "------------------------"
       puts "------------------------"
-      prompt "Dealer Turn..." if !bust(score[:player])
+      prompt "Dealer Turn..." if !bust(score[:player]) && score[:player] != WINNING_SCORE
       sleep 2
-
+      break if choice == "q"
+      
       until (score[:dealer] >= DEALER_MAX_HIT_VALUE) || bust(score[:player])
         score[:dealer] = calculate_total(hands[:dealer])
         display_cards(hands, score, :player, :dealer)
-        break if bust(score[:player]) || bust(score[:dealer]) || (choice == "q")
+        break if bust(score[:player]) || bust(score[:dealer]) ||
+                 (choice == "q") ||
+                 (score[:player] = WINNING_SCORE)
         hit(deck, hands, :dealer)
         prompt "Dealer hit!"
         puts "------------------------"
@@ -230,7 +233,8 @@ loop do
 
       puts "------------------------"
       puts "------------------------"
-      display_cards(hands, score, :player, :dealer) if !bust(score[:player])
+      display_cards(hands, score, :player, :dealer) if !bust(score[:player]) &&
+      score[:player] != WINNING_SCORE
       winner = determine_winner(score[:player], score[:dealer])
       prompt "The winner is #{winner}!" unless winner == "Tie"
       tie(winner)
@@ -239,10 +243,11 @@ loop do
     end
 
     keep_max_score(max_score, winner)
-    break if match_ended?(max_score[:player], max_score[:dealer])
+    break if match_ended?(max_score[:player], max_score[:dealer]) || choice == "q"
     sleep 2
   end
-
+  
+  break if choice == "q"
   display_match_winner(max_score[:player])
   answer = play_again?
   break if answer == "n"
